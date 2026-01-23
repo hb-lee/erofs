@@ -2,16 +2,16 @@ From mboxrd@z Thu Jan  1 00:00:00 1970
 Received: from canpmsgout03.his.huawei.com (canpmsgout03.his.huawei.com [113.46.200.218])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id C8A32361642;
-	Fri, 16 Jan 2026 10:08:48 +0000 (UTC)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id A7C193559CB;
+	Fri, 23 Jan 2026 01:45:26 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=113.46.200.218
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1768558137; cv=none; b=JJObHoGw9tnlJsRDqTcbypd5Q4OAvIxyUrqh/oSABwVrTQIJoOl8Snv+CG8PUvYhGoEofiGfytiRkMoYepwK2aRSEeklDke47syHrupb/D2WP/1kgIBvFIn1Sslja+m+dC2WCeRi7/d3q99MgYcYTwZGaZkBdpKdPnmS3pU7QZw=
+	t=1769132733; cv=none; b=bh8htnFRqqZ3GgCjZM2ozou0mvv0vzKzGnEfFlW9ThbwuM83PgNi6PvEyeFWUHvJpq414HYXHcBQNsrbo7fQv3Q7jEK+f3ztlXav6k35pheHnRXfknta0YqIi4Kusx2Fn3Ic08MYvQhs997WTiuYKzctkPozMG/D+IvOXukekNo=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1768558137; c=relaxed/simple;
+	s=arc-20240116; t=1769132733; c=relaxed/simple;
 	bh=bLPyX55goz9UpKyTSsH/rsQVx9Lcd+68NmlbcIC2gHs=;
 	h=From:To:CC:Subject:Date:Message-ID:In-Reply-To:References:
-	 MIME-Version:Content-Type; b=Q12lORboghaWGFSFPreTqTs19oVbcocQ/hD10Cuhtv70YihmgVnM+X6UYCPNqYSMJMOWaUYh6EY/lHY5bvuu7jBXMQSmUWYtUdA5O/I0KClbZU/mNZ/NgyDub93yG6nNtIKOhFTL0rxZ1+WnsM5ZwjG38X0+jqNPHbfumMdfJw0=
+	 MIME-Version:Content-Type; b=YQndiY39Bu9HRJ/95ykxy9GHsTsqqVC3jMpB7MY/wT5tICT16cJlkkdL5BIB8X+6hjccSm4TmFN0u1EeCdP5RhxjMfRsrERTqcJJCutKFS4tlFTdhPIW0jKiEVLUksmaMp2K+RlxyI1JIzTMplL3umE38bA4GjVOP0e2FKxqBpY=
 ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=huawei.com; spf=pass smtp.mailfrom=huawei.com; dkim=pass (1024-bit key) header.d=huawei.com header.i=@huawei.com header.b=oJbF4d0t; arc=none smtp.client-ip=113.46.200.218
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=huawei.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=huawei.com
@@ -24,27 +24,27 @@ dkim-signature: v=1; a=rsa-sha256; d=huawei.com; s=dkim;
 	b=oJbF4d0t5wRl+Q3D2MEG1XxQ46Sws4p95wCVOUDW01xFXaHTtZLIuDaU1CGP+FYnhHWI9gyc+
 	vl1DpAL3wOTCohN8rpHMh58gcD4/VUG36UAoqVqtLr4Wg1E8jI9n820W4N+o3Weae21OVDrRQCJ
 	RiDve7yi5NEMgQAYQ4IAnOc=
-Received: from mail.maildlp.com (unknown [172.19.162.140])
-	by canpmsgout03.his.huawei.com (SkyGuard) with ESMTPS id 4dswSv2rRjzpStd;
-	Fri, 16 Jan 2026 18:05:03 +0800 (CST)
+Received: from mail.maildlp.com (unknown [172.19.163.0])
+	by canpmsgout03.his.huawei.com (SkyGuard) with ESMTPS id 4dy0yd2dPfzpStB;
+	Fri, 23 Jan 2026 09:41:29 +0800 (CST)
 Received: from kwepemr500015.china.huawei.com (unknown [7.202.195.162])
-	by mail.maildlp.com (Postfix) with ESMTPS id 81880201E9;
-	Fri, 16 Jan 2026 18:08:40 +0800 (CST)
+	by mail.maildlp.com (Postfix) with ESMTPS id EBA8C40537;
+	Fri, 23 Jan 2026 09:45:17 +0800 (CST)
 Received: from huawei.com (10.67.174.162) by kwepemr500015.china.huawei.com
  (7.202.195.162) with Microsoft SMTP Server (version=TLS1_2,
- cipher=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384) id 15.2.1544.11; Fri, 16 Jan
- 2026 18:08:39 +0800
+ cipher=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384) id 15.2.1544.11; Fri, 23 Jan
+ 2026 09:45:17 +0800
 From: Hongbo Li <lihongbo22@huawei.com>
 To: <hsiangkao@linux.alibaba.com>, <chao@kernel.org>, <brauner@kernel.org>
-CC: <djwong@kernel.org>, <amir73il@gmail.com>, <hch@lst.de>,
+CC: <hch@lst.de>, <djwong@kernel.org>, <amir73il@gmail.com>,
 	<linux-fsdevel@vger.kernel.org>, <linux-erofs@lists.ozlabs.org>,
 	<linux-kernel@vger.kernel.org>, <lihongbo22@huawei.com>
-Subject: [PATCH v15 2/9] erofs: decouple `struct erofs_anon_fs_type`
-Date: Fri, 16 Jan 2026 09:55:43 +0000
-Message-ID: <20260116095550.627082-3-lihongbo22@huawei.com>
+Subject: [PATCH v18 02/10] erofs: decouple `struct erofs_anon_fs_type`
+Date: Fri, 23 Jan 2026 01:31:24 +0000
+Message-ID: <20260123013132.662393-3-lihongbo22@huawei.com>
 X-Mailer: git-send-email 2.22.0
-In-Reply-To: <20260116095550.627082-1-lihongbo22@huawei.com>
-References: <20260116095550.627082-1-lihongbo22@huawei.com>
+In-Reply-To: <20260123013132.662393-1-lihongbo22@huawei.com>
+References: <20260123013132.662393-1-lihongbo22@huawei.com>
 Precedence: bulk
 X-Mailing-List: linux-kernel@vger.kernel.org
 List-Id: <linux-kernel.vger.kernel.org>
@@ -53,7 +53,7 @@ List-Unsubscribe: <mailto:linux-kernel+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
 Content-Type: text/plain
-X-ClientProxiedBy: kwepems100002.china.huawei.com (7.221.188.206) To
+X-ClientProxiedBy: kwepems200001.china.huawei.com (7.221.188.67) To
  kwepemr500015.china.huawei.com (7.202.195.162)
 
 From: Gao Xiang <hsiangkao@linux.alibaba.com>

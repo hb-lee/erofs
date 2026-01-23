@@ -1,18 +1,18 @@
 From mboxrd@z Thu Jan  1 00:00:00 1970
-Received: from canpmsgout09.his.huawei.com (canpmsgout09.his.huawei.com [113.46.200.224])
+Received: from canpmsgout01.his.huawei.com (canpmsgout01.his.huawei.com [113.46.200.216])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 99E0235FF55;
-	Fri, 16 Jan 2026 10:08:47 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=113.46.200.224
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 676052D8771;
+	Fri, 23 Jan 2026 01:45:25 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=113.46.200.216
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1768558129; cv=none; b=fLdNvjLNFjhHitQ0uWpGbPhxirIQsmT0RVYq1Ej4RXvxLFgSEghLp1huWffbXFJa1CTd189DOunzsn4F/A6YMuMokvaXZMYFS6laQFbw2XRPcISrYUSKxnmzLSve0a9TWeXv+W0+QvTnGn0RVmAStSHyqU6eFnWvOr/Stt3u5kA=
+	t=1769132741; cv=none; b=VCJmXzLnvsRWD2uFUpBIIwexqSTyxkk8YNCJMqIosB/CTH3BZEj4Um2Fn4dt9mI7zlXyrWnObhj8PNOwgGRqTQYjarW8tAt0HFypKpZhrmziENJMT46Qk69N0oshwB0MHdY+7+luOpLLdfy8/bLGC4JqrycAyN+Y3h8rgJ6brmQ=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1768558129; c=relaxed/simple;
+	s=arc-20240116; t=1769132741; c=relaxed/simple;
 	bh=/DOP628ou57Yld7gMP4kYmxmunqIn78QOq3XPXhRUAY=;
 	h=From:To:CC:Subject:Date:Message-ID:In-Reply-To:References:
-	 MIME-Version:Content-Type; b=H2UwF8O6ijYynBF4qJuxhbgz0xZgtNy72M6Ub952LhCzHMPXYXtv8anrBHjyq7ARQ0KsnM3m6syyyxWurLvotF1gFLJ6FPL9FPymq6qe2YtlxYYwF5a9AJszQdqIUW/CNh9ZdXqhm6bp5ZRI310rTUFEUUaFFIJFRrKt/+jE6l4=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=huawei.com; spf=pass smtp.mailfrom=huawei.com; dkim=pass (1024-bit key) header.d=huawei.com header.i=@huawei.com header.b=aViTVgKb; arc=none smtp.client-ip=113.46.200.224
+	 MIME-Version:Content-Type; b=NPBlNzVkfvwpGSwkKMlUj2JfG28zAZbyiywRiQxRRNmh+InxihJGNUbCQlslTfxbHQJB9m4ko2zIqIqE8AmXZhKjcd/TXbWARWelLEz9DrNeX7kYNpdsSRSqlyR16cqT3bSxO/YsAfLQLCj/cj2i7BzuYPlA1e5vMPY9oS+MVHw=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=huawei.com; spf=pass smtp.mailfrom=huawei.com; dkim=pass (1024-bit key) header.d=huawei.com header.i=@huawei.com header.b=aViTVgKb; arc=none smtp.client-ip=113.46.200.216
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=huawei.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=huawei.com
 Authentication-Results: smtp.subspace.kernel.org;
@@ -24,27 +24,27 @@ dkim-signature: v=1; a=rsa-sha256; d=huawei.com; s=dkim;
 	b=aViTVgKbU3p9F6fvfb/DRZ9GIhljQ3rKlHQMPA1II5YccTLm1l79Wl8RBcmkkhYNwMzHKxXz0
 	9YV1Y0ow6kq2fONT0jz7uycW8blnvYaMxZYGGACdFOLs9cXkvJ3tWcEIwXSiiP4I/798eIXtO+j
 	kCdEQvGGYPkM65v8oi6/oqU=
-Received: from mail.maildlp.com (unknown [172.19.163.15])
-	by canpmsgout09.his.huawei.com (SkyGuard) with ESMTPS id 4dswTC5Tc3z1cyq4;
-	Fri, 16 Jan 2026 18:05:19 +0800 (CST)
+Received: from mail.maildlp.com (unknown [172.19.162.144])
+	by canpmsgout01.his.huawei.com (SkyGuard) with ESMTPS id 4dy0yJ3SK4z1T4HP;
+	Fri, 23 Jan 2026 09:41:12 +0800 (CST)
 Received: from kwepemr500015.china.huawei.com (unknown [7.202.195.162])
-	by mail.maildlp.com (Postfix) with ESMTPS id 1137740539;
-	Fri, 16 Jan 2026 18:08:40 +0800 (CST)
+	by mail.maildlp.com (Postfix) with ESMTPS id 8077140567;
+	Fri, 23 Jan 2026 09:45:17 +0800 (CST)
 Received: from huawei.com (10.67.174.162) by kwepemr500015.china.huawei.com
  (7.202.195.162) with Microsoft SMTP Server (version=TLS1_2,
- cipher=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384) id 15.2.1544.11; Fri, 16 Jan
- 2026 18:08:39 +0800
+ cipher=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384) id 15.2.1544.11; Fri, 23 Jan
+ 2026 09:45:16 +0800
 From: Hongbo Li <lihongbo22@huawei.com>
 To: <hsiangkao@linux.alibaba.com>, <chao@kernel.org>, <brauner@kernel.org>
-CC: <djwong@kernel.org>, <amir73il@gmail.com>, <hch@lst.de>,
+CC: <hch@lst.de>, <djwong@kernel.org>, <amir73il@gmail.com>,
 	<linux-fsdevel@vger.kernel.org>, <linux-erofs@lists.ozlabs.org>,
 	<linux-kernel@vger.kernel.org>, <lihongbo22@huawei.com>
-Subject: [PATCH v15 1/9] fs: Export alloc_empty_backing_file
-Date: Fri, 16 Jan 2026 09:55:42 +0000
-Message-ID: <20260116095550.627082-2-lihongbo22@huawei.com>
+Subject: [PATCH v18 01/10] fs: Export alloc_empty_backing_file
+Date: Fri, 23 Jan 2026 01:31:23 +0000
+Message-ID: <20260123013132.662393-2-lihongbo22@huawei.com>
 X-Mailer: git-send-email 2.22.0
-In-Reply-To: <20260116095550.627082-1-lihongbo22@huawei.com>
-References: <20260116095550.627082-1-lihongbo22@huawei.com>
+In-Reply-To: <20260123013132.662393-1-lihongbo22@huawei.com>
+References: <20260123013132.662393-1-lihongbo22@huawei.com>
 Precedence: bulk
 X-Mailing-List: linux-kernel@vger.kernel.org
 List-Id: <linux-kernel.vger.kernel.org>
@@ -53,7 +53,7 @@ List-Unsubscribe: <mailto:linux-kernel+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
 Content-Type: text/plain
-X-ClientProxiedBy: kwepems100002.china.huawei.com (7.221.188.206) To
+X-ClientProxiedBy: kwepems200001.china.huawei.com (7.221.188.67) To
  kwepemr500015.china.huawei.com (7.202.195.162)
 
 There is no need to open nonexistent real files if backing files
