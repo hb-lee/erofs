@@ -1,0 +1,323 @@
+From 73446184afd131668deb68dc619f2e69a33afd6b Mon Sep 17 00:00:00 2001
+From: Hongbo Li <lihb2113@outlook.com>
+Date: Tue, 10 Feb 2026 21:32:41 +0800
+Subject: [PATCH] erofs: fix inode_share aops in different case
+
+Signed-off-by: Hongbo Li <lihb2113@outlook.com>
+---
+ fs/erofs/data.c     | 10 ++----
+ fs/erofs/fileio.c   | 11 ++----
+ fs/erofs/internal.h | 11 ++----
+ fs/erofs/ishare.c   | 87 ++++++++++++++++++++++++++++-----------------
+ fs/erofs/zdata.c    | 13 ++-----
+ 5 files changed, 65 insertions(+), 67 deletions(-)
+
+diff --git a/fs/erofs/data.c b/fs/erofs/data.c
+index a2c796db4510..f2be28fa6711 100644
+--- a/fs/erofs/data.c
++++ b/fs/erofs/data.c
+@@ -383,15 +383,12 @@ static int erofs_read_folio(struct file *file, struct folio *folio)
+ 		.ops		= &iomap_bio_read_ops,
+ 		.cur_folio	= folio,
+ 	};
+-	bool need_iput;
+ 	struct erofs_iomap_iter_ctx iter_ctx = {
+-		.realinode = erofs_real_inode(folio_inode(folio), &need_iput),
++		.realinode = erofs_real_inode(file, folio_inode(folio)),
+ 	};
+ 
+ 	trace_erofs_read_folio(iter_ctx.realinode, folio, true);
+ 	iomap_read_folio(&erofs_iomap_ops, &read_ctx, &iter_ctx);
+-	if (need_iput)
+-		iput(iter_ctx.realinode);
+ 	return 0;
+ }
+ 
+@@ -401,16 +398,13 @@ static void erofs_readahead(struct readahead_control *rac)
+ 		.ops		= &iomap_bio_read_ops,
+ 		.rac		= rac,
+ 	};
+-	bool need_iput;
+ 	struct erofs_iomap_iter_ctx iter_ctx = {
+-		.realinode = erofs_real_inode(rac->mapping->host, &need_iput),
++		.realinode = erofs_real_inode(rac->file, rac->mapping->host),
+ 	};
+ 
+ 	trace_erofs_readahead(iter_ctx.realinode, readahead_index(rac),
+ 			      readahead_count(rac), true);
+ 	iomap_readahead(&erofs_iomap_ops, &read_ctx, &iter_ctx);
+-	if (need_iput)
+-		iput(iter_ctx.realinode);
+ }
+ 
+ static sector_t erofs_bmap(struct address_space *mapping, sector_t block)
+diff --git a/fs/erofs/fileio.c b/fs/erofs/fileio.c
+index 4d5054dcac95..2ac9fca41380 100644
+--- a/fs/erofs/fileio.c
++++ b/fs/erofs/fileio.c
+@@ -154,28 +154,25 @@ static int erofs_fileio_scan_folio(struct erofs_fileio *io,
+ 		cur += len;
+ 	}
+ 	erofs_onlinefolio_end(folio, err, false);
++	folio_clear_private(folio);
+ 	return err;
+ }
+ 
+ static int erofs_fileio_read_folio(struct file *file, struct folio *folio)
+ {
+-	bool need_iput;
+-	struct inode *realinode = erofs_real_inode(folio_inode(folio), &need_iput);
++	struct inode *realinode = erofs_real_inode(file, folio_inode(folio));
+ 	struct erofs_fileio io = {};
+ 	int err;
+ 
+ 	trace_erofs_read_folio(realinode, folio, true);
+ 	err = erofs_fileio_scan_folio(&io, realinode, folio);
+ 	erofs_fileio_rq_submit(io.rq);
+-	if (need_iput)
+-		iput(realinode);
+ 	return err;
+ }
+ 
+ static void erofs_fileio_readahead(struct readahead_control *rac)
+ {
+-	bool need_iput;
+-	struct inode *realinode = erofs_real_inode(rac->mapping->host, &need_iput);
++	struct inode *realinode = erofs_real_inode(rac->file, rac->mapping->host);
+ 	struct erofs_fileio io = {};
+ 	struct folio *folio;
+ 	int err;
+@@ -189,8 +186,6 @@ static void erofs_fileio_readahead(struct readahead_control *rac)
+ 				  folio->index, EROFS_I(realinode)->nid);
+ 	}
+ 	erofs_fileio_rq_submit(io.rq);
+-	if (need_iput)
+-		iput(realinode);
+ }
+ 
+ const struct address_space_operations erofs_fileio_aops = {
+diff --git a/fs/erofs/internal.h b/fs/erofs/internal.h
+index 6a4802f3fdd8..7f57f172c5a3 100644
+--- a/fs/erofs/internal.h
++++ b/fs/erofs/internal.h
+@@ -308,13 +308,9 @@ struct erofs_inode {
+ #endif	/* CONFIG_EROFS_FS_ZIP */
+ 	};
+ #ifdef CONFIG_EROFS_FS_PAGE_CACHE_SHARE
+-	struct list_head ishare_list;
+ 	union {
+ 		/* for each anon shared inode */
+-		struct {
+-			struct erofs_inode_fingerprint fingerprint;
+-			spinlock_t ishare_lock;
+-		};
++		struct erofs_inode_fingerprint fingerprint;
+ 		/* for each real inode */
+ 		struct inode *sharedinode;
+ 	};
+@@ -584,15 +580,14 @@ int __init erofs_init_ishare(void);
+ void erofs_exit_ishare(void);
+ bool erofs_ishare_fill_inode(struct inode *inode);
+ void erofs_ishare_free_inode(struct inode *inode);
+-struct inode *erofs_real_inode(struct inode *inode, bool *need_iput);
++struct inode *erofs_real_inode(struct file *file, struct inode *inode);
+ #else
+ static inline int erofs_init_ishare(void) { return 0; }
+ static inline void erofs_exit_ishare(void) {}
+ static inline bool erofs_ishare_fill_inode(struct inode *inode) { return false; }
+ static inline void erofs_ishare_free_inode(struct inode *inode) {}
+-static inline struct inode *erofs_real_inode(struct inode *inode, bool *need_iput)
++static inline struct inode *erofs_real_inode(struct file *file, struct inode *inode)
+ {
+-	*need_iput = false;
+ 	return inode;
+ }
+ #endif
+diff --git a/fs/erofs/ishare.c b/fs/erofs/ishare.c
+index ce980320a8b9..65e511611bfa 100644
+--- a/fs/erofs/ishare.c
++++ b/fs/erofs/ishare.c
+@@ -31,11 +31,58 @@ static int erofs_ishare_iget5_set(struct inode *inode, void *data)
+ 	struct erofs_inode *vi = EROFS_I(inode);
+ 
+ 	vi->fingerprint = *(struct erofs_inode_fingerprint *)data;
+-	INIT_LIST_HEAD(&vi->ishare_list);
+-	spin_lock_init(&vi->ishare_lock);
+ 	return 0;
+ }
+ 
++static int erofs_ishare_read_folio(struct file *file, struct folio *folio)
++{
++	struct erofs_inode *vi = file->private_data;
++	const struct address_space_operations *aops = vi->vfs_inode.i_mapping->a_ops;
++
++	if (folio_test_private(folio) && aops != &erofs_aops)
++		(void)iomap_release_folio(folio, 0);
++	return aops->read_folio(file, folio);
++}
++
++static void erofs_ishare_readahead(struct readahead_control *rac)
++{
++	struct erofs_inode *vi = rac->file->private_data;
++	const struct address_space_operations *aops = vi->vfs_inode.i_mapping->a_ops;
++	unsigned int npages = 0, nr_pages = readahead_count(rac);
++	pgoff_t index = readahead_index(rac);
++	struct folio *folio;
++
++	while (npages < nr_pages &&
++		(folio = xa_load(&rac->mapping->i_pages, index))) {
++			if (folio_test_private(folio) && aops != &erofs_aops)
++				(void)iomap_release_folio(folio, 0);
++			index += folio_nr_pages(folio);
++			npages += folio_nr_pages(folio);
++	}
++	aops->readahead(rac);
++}
++
++static bool erofs_ishare_release_folio(struct folio *folio, gfp_t gfp_flags)
++{
++	if (!folio_test_private(folio))
++		return true;
++	return iomap_release_folio(folio, gfp_flags);
++}
++
++static void erofs_ishare_invalidate_folio(struct folio *folio, size_t offset, size_t len)
++{
++	if (!folio_test_private(folio))
++		return;
++	iomap_invalidate_folio(folio, offset, len);
++}
++
++const struct address_space_operations erofs_ishare_aops = {
++	.readahead = erofs_ishare_readahead,
++	.read_folio = erofs_ishare_read_folio,
++	.release_folio = erofs_ishare_release_folio,
++	.invalidate_folio = erofs_ishare_invalidate_folio,
++};
++
+ bool erofs_ishare_fill_inode(struct inode *inode)
+ {
+ 	struct erofs_sb_info *sbi = EROFS_SB(inode->i_sb);
+@@ -56,11 +103,7 @@ bool erofs_ishare_fill_inode(struct inode *inode)
+ 	}
+ 
+ 	if (inode_state_read_once(sharedinode) & I_NEW) {
+-		if (erofs_inode_set_aops(sharedinode, inode, true)) {
+-			iget_failed(sharedinode);
+-			kfree(fp.opaque);
+-			return false;
+-		}
++		sharedinode->i_mapping->a_ops = &erofs_ishare_aops;
+ 		sharedinode->i_size = vi->vfs_inode.i_size;
+ 		unlock_new_inode(sharedinode);
+ 	} else {
+@@ -74,10 +117,6 @@ bool erofs_ishare_fill_inode(struct inode *inode)
+ 		}
+ 	}
+ 	vi->sharedinode = sharedinode;
+-	INIT_LIST_HEAD(&vi->ishare_list);
+-	spin_lock(&EROFS_I(sharedinode)->ishare_lock);
+-	list_add(&vi->ishare_list, &EROFS_I(sharedinode)->ishare_list);
+-	spin_unlock(&EROFS_I(sharedinode)->ishare_lock);
+ 	return true;
+ }
+ 
+@@ -88,9 +127,6 @@ void erofs_ishare_free_inode(struct inode *inode)
+ 
+ 	if (!sharedinode)
+ 		return;
+-	spin_lock(&EROFS_I(sharedinode)->ishare_lock);
+-	list_del(&vi->ishare_list);
+-	spin_unlock(&EROFS_I(sharedinode)->ishare_lock);
+ 	iput(sharedinode);
+ 	vi->sharedinode = NULL;
+ }
+@@ -168,30 +204,15 @@ const struct file_operations erofs_ishare_fops = {
+ 	.fadvise	= erofs_ishare_fadvise,
+ };
+ 
+-struct inode *erofs_real_inode(struct inode *inode, bool *need_iput)
++struct inode *erofs_real_inode(struct file *file, struct inode *inode)
+ {
+-	struct erofs_inode *vi, *vi_share;
+-	struct inode *realinode;
++	struct erofs_inode *vi;
+ 
+-	*need_iput = false;
+ 	if (!erofs_is_ishare_inode(inode))
+ 		return inode;
+ 
+-	vi_share = EROFS_I(inode);
+-	spin_lock(&vi_share->ishare_lock);
+-	/* fetch any one as real inode */
+-	DBG_BUGON(list_empty(&vi_share->ishare_list));
+-	list_for_each_entry(vi, &vi_share->ishare_list, ishare_list) {
+-		realinode = igrab(&vi->vfs_inode);
+-		if (realinode) {
+-			*need_iput = true;
+-			break;
+-		}
+-	}
+-	spin_unlock(&vi_share->ishare_lock);
+-
+-	DBG_BUGON(!realinode);
+-	return realinode;
++	vi = file->private_data;
++	return &vi->vfs_inode;
+ }
+ 
+ int __init erofs_init_ishare(void)
+diff --git a/fs/erofs/zdata.c b/fs/erofs/zdata.c
+index ea9d32e9cb12..30bf9756033f 100644
+--- a/fs/erofs/zdata.c
++++ b/fs/erofs/zdata.c
+@@ -1095,6 +1095,7 @@ static int z_erofs_scan_folio(struct z_erofs_frontend *f,
+ 		}
+ 	} while ((end = cur) > 0);
+ 	erofs_onlinefolio_end(folio, err, false);
++	folio_clear_private(folio);
+ 	return err;
+ }
+ 
+@@ -1878,8 +1879,7 @@ static void z_erofs_pcluster_readmore(struct z_erofs_frontend *f,
+ static int z_erofs_read_folio(struct file *file, struct folio *folio)
+ {
+ 	struct inode *sharedinode = folio->mapping->host;
+-	bool need_iput;
+-	struct inode *realinode = erofs_real_inode(sharedinode, &need_iput);
++	struct inode *realinode = erofs_real_inode(file, sharedinode);
+ 	Z_EROFS_DEFINE_FRONTEND(f, realinode, sharedinode, folio_pos(folio));
+ 	int err;
+ 
+@@ -1897,17 +1897,13 @@ static int z_erofs_read_folio(struct file *file, struct folio *folio)
+ 
+ 	erofs_put_metabuf(&f.map.buf);
+ 	erofs_release_pages(&f.pagepool);
+-
+-	if (need_iput)
+-		iput(realinode);
+ 	return err;
+ }
+ 
+ static void z_erofs_readahead(struct readahead_control *rac)
+ {
+ 	struct inode *sharedinode = rac->mapping->host;
+-	bool need_iput;
+-	struct inode *realinode = erofs_real_inode(sharedinode, &need_iput);
++	struct inode *realinode = erofs_real_inode(rac->file, sharedinode);
+ 	Z_EROFS_DEFINE_FRONTEND(f, realinode, sharedinode, readahead_pos(rac));
+ 	unsigned int nrpages = readahead_count(rac);
+ 	struct folio *head = NULL, *folio;
+@@ -1936,9 +1932,6 @@ static void z_erofs_readahead(struct readahead_control *rac)
+ 	(void)z_erofs_runqueue(&f, nrpages << PAGE_SHIFT);
+ 	erofs_put_metabuf(&f.map.buf);
+ 	erofs_release_pages(&f.pagepool);
+-
+-	if (need_iput)
+-		iput(realinode);
+ }
+ 
+ const struct address_space_operations z_erofs_aops = {
+-- 
+2.51.0.windows.1
+
